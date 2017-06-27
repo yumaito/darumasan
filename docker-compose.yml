@@ -1,0 +1,16 @@
+version: '2'
+services:
+  app:
+    build: ./docker/
+    volumes:
+      - '.:/go/src/github.com/yumaito/darumasan'
+      - './godo:/go/src/github.com/yumaito/darumasan/Gododir'
+    ports:
+      - '8080:8080'
+    links:
+      - redis
+    command: godo darumasan --watch
+  redis:
+    image: redis
+    ports:
+      - '6379:6379'
