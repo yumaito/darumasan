@@ -15,6 +15,7 @@ $ curl https://glide.sh/get | sh
 $ glide install
 $ go run main.go
 ```
+これで`localhost:8080`でサーバーが立ちます
 
 ### エンドポイント
 
