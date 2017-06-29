@@ -1,5 +1,6 @@
 package app
 
+// GameMessage はサーバーから送信されるメッセージ
 type GameMessage struct {
 	From        string   `json:"from"`
 	To          string   `json:"to"`

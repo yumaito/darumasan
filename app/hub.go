@@ -6,22 +6,24 @@ import (
 
 // Hub は登録されているクライアントの管理やメッセージのやり取りを管理する中枢の役割を果たします
 type Hub struct {
-	clients    map[*Client]bool
-	curatorID  string
-	message    chan *ClientMessage
-	register   chan *Client
-	unregister chan *Client
-	IsWatched  bool
-	logger     *log.Logger
+	clients     map[*Client]bool
+	curatorID   string
+	deadClients []string
+	message     chan *ClientMessage
+	register    chan *Client
+	unregister  chan *Client
+	IsWatched   bool
+	logger      *log.Logger
 }
 
 func NewHub(logger *log.Logger) *Hub {
 	return &Hub{
-		clients:    make(map[*Client]bool),
-		message:    make(chan *ClientMessage),
-		register:   make(chan *Client),
-		unregister: make(chan *Client),
-		logger:     logger,
+		clients:     make(map[*Client]bool),
+		deadClients: []string{},
+		message:     make(chan *ClientMessage),
+		register:    make(chan *Client),
+		unregister:  make(chan *Client),
+		logger:      logger,
 	}
 }
 
@@ -37,6 +39,8 @@ func (h *Hub) Run() {
 			if client.clientType == CLIENT_TYPE_CURATOR {
 				h.curatorID = client.ID
 			}
+			initMsg := h.initialMessage(client)
+			h.sendToClientAndCurator(client.ID, initMsg)
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)
@@ -46,7 +50,7 @@ func (h *Hub) Run() {
 		case msg := <-h.message:
 			h.logger.Printf("receive from %s %+v\n", msg.ID, msg)
 			gm := h.createMessage(msg)
-			h.send(msg.ID, gm)
+			h.sendToClientAndCurator(msg.ID, gm)
 		}
 	}
 }
@@ -59,6 +63,21 @@ func (h *Hub) createMessage(cm *ClientMessage) *GameMessage {
 	switch cm.ClientType {
 	case CLIENT_TYPE_CLIENT:
 		// クライアントからのメッセージ
+		// 監視中にtrueがきたらアウトにする
+		// ユニークにするため一度mapに入れて整理している
+		if h.IsWatched && cm.Status {
+			h.deadClients = append(h.deadClients, cm.ID)
+			m := make(map[string]bool)
+			for _, val := range h.deadClients {
+				m[val] = true
+			}
+			m[cm.ID] = true
+			dc := make([]string, 0)
+			for key, _ := range m {
+				dc = append(dc, key)
+			}
+			h.deadClients = dc
+		}
 	case CLIENT_TYPE_CURATOR:
 		// 鬼からのメッセージならis_watchedを更新
 		h.IsWatched = cm.Status
@@ -68,13 +87,30 @@ func (h *Hub) createMessage(cm *ClientMessage) *GameMessage {
 		From:        cm.ID,
 		ClientType:  cm.ClientType,
 		Clients:     cs,
-		DeadClients: []string{},
+		DeadClients: h.deadClients,
 		CuratorID:   h.curatorID,
 		IsWatched:   h.IsWatched,
 	}
 }
 
-func (h *Hub) send(cid string, gm *GameMessage) {
+// initialMessage はclientが接続したときに鬼と接続クライアントに対して送られる初期メッセージを作成します
+func (h *Hub) initialMessage(client *Client) *GameMessage {
+	cs := make([]string, 0)
+	for key, _ := range h.clients {
+		cs = append(cs, key.ID)
+	}
+	return &GameMessage{
+		From:        client.ID,
+		ClientType:  client.clientType,
+		Clients:     cs,
+		DeadClients: h.deadClients,
+		CuratorID:   h.curatorID,
+		IsWatched:   h.IsWatched,
+	}
+}
+
+// sendToClientAndCurator はcidのクライアントと鬼に対してメッセージを送信します
+func (h *Hub) sendToClientAndCurator(cid string, gm *GameMessage) {
 	// 送り主と鬼にメッセージを送信
 	for key, _ := range h.clients {
 		if key.ID == cid || key.ID == h.curatorID {
