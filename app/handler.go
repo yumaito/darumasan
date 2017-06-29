@@ -20,7 +20,8 @@ func generateID() string {
 	h := sha256.New()
 	str := strconv.FormatInt(time.Now().UnixNano(), 10)
 	io.WriteString(h, str)
-	return fmt.Sprintf("%x", h.Sum(nil))
+	result := fmt.Sprintf("%x", h.Sum(nil))
+	return result[:10]
 }
 
 // ClientHandler はスマホ端末側がつなぐエンドポイントのhandlerです

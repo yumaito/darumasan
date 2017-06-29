@@ -34,6 +34,9 @@ func (h *Hub) Run() {
 		case client := <-h.register:
 			h.clients[client] = true
 			h.logger.Printf("id:%s type:%d connected\n", client.ID, client.clientType)
+			if client.clientType == CLIENT_TYPE_CURATOR {
+				h.curatorID = client.ID
+			}
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)
@@ -41,7 +44,7 @@ func (h *Hub) Run() {
 				h.logger.Printf("id:%s type:%d disconnected\n", client.ID, client.clientType)
 			}
 		case msg := <-h.message:
-			h.logger.Printf("%+v\n", msg)
+			h.logger.Printf("receive from %s %+v\n", msg.ID, msg)
 			gm := h.complementMessage(msg)
 			h.send(msg.ID, gm)
 		}
@@ -62,8 +65,6 @@ func (h *Hub) complementMessage(cm *ClientMessage) *GameMessage {
 	}
 
 	return &GameMessage{
-		ID:          cm.ID,
-		ClientType:  cm.ClientType,
 		Clients:     cs,
 		DeadClients: []string{},
 		CuratorID:   h.curatorID,
@@ -75,9 +76,8 @@ func (h *Hub) send(cid string, gm *GameMessage) {
 	// 送り主と鬼にメッセージを送信
 	for key, _ := range h.clients {
 		if key.ID == cid || key.ID == h.curatorID {
-			select {
-			case key.write <- gm:
-			}
+			h.logger.Printf("send %+v\n", gm)
+			key.write <- gm
 		}
 	}
 }
