@@ -23,3 +23,21 @@ type Client struct {
 	send       chan []*ClientEvent
 	clientType uint32
 }
+
+func NewClient(hub *Hub, conn *websocket.Conn, clientType uint32) {
+	return &Client{
+		hub:        hub,
+		conn:       conn,
+		send:       make(chan send),
+		clientType: clientType,
+	}
+}
+
+func WsServer(hub *Hub, w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		hub.logger.Println(err)
+		return
+	}
+	client := NewClient(hub, conn)
+}
