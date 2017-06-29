@@ -9,7 +9,6 @@ type Hub struct {
 	clients    map[*Client]bool
 	curatorID  string
 	message    chan *ClientMessage
-	broadcast  chan *GameMessage
 	register   chan *Client
 	unregister chan *Client
 	IsWatched  bool
@@ -20,7 +19,6 @@ func NewHub(logger *log.Logger) *Hub {
 	return &Hub{
 		clients:    make(map[*Client]bool),
 		message:    make(chan *ClientMessage),
-		broadcast:  make(chan *GameMessage),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 		logger:     logger,
@@ -32,6 +30,8 @@ func (h *Hub) Run() {
 	for {
 		select {
 		case client := <-h.register:
+			// 接続クライアントの登録
+			// 鬼が接続した場合は鬼として登録
 			h.clients[client] = true
 			h.logger.Printf("id:%s type:%d connected\n", client.ID, client.clientType)
 			if client.clientType == CLIENT_TYPE_CURATOR {
@@ -45,13 +45,13 @@ func (h *Hub) Run() {
 			}
 		case msg := <-h.message:
 			h.logger.Printf("receive from %s %+v\n", msg.ID, msg)
-			gm := h.complementMessage(msg)
+			gm := h.createMessage(msg)
 			h.send(msg.ID, gm)
 		}
 	}
 }
 
-func (h *Hub) complementMessage(cm *ClientMessage) *GameMessage {
+func (h *Hub) createMessage(cm *ClientMessage) *GameMessage {
 	cs := make([]string, 0)
 	for key, _ := range h.clients {
 		cs = append(cs, key.ID)
@@ -65,6 +65,8 @@ func (h *Hub) complementMessage(cm *ClientMessage) *GameMessage {
 	}
 
 	return &GameMessage{
+		From:        cm.ID,
+		ClientType:  cm.ClientType,
 		Clients:     cs,
 		DeadClients: []string{},
 		CuratorID:   h.curatorID,
@@ -76,8 +78,16 @@ func (h *Hub) send(cid string, gm *GameMessage) {
 	// 送り主と鬼にメッセージを送信
 	for key, _ := range h.clients {
 		if key.ID == cid || key.ID == h.curatorID {
-			h.logger.Printf("send %+v\n", gm)
-			key.write <- gm
+			msg := &GameMessage{
+				From:        gm.From,
+				To:          key.ID,
+				ClientType:  gm.ClientType,
+				Clients:     gm.Clients,
+				DeadClients: gm.DeadClients,
+				CuratorID:   gm.CuratorID,
+				IsWatched:   gm.IsWatched,
+			}
+			key.write <- msg
 		}
 	}
 }

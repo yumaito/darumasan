@@ -40,13 +40,18 @@ func (c *Client) Disconnect() {
 func (c *Client) ReadMessage() {
 	defer c.Disconnect()
 	for {
-		cm := &ClientMessage{}
-		if err := c.conn.ReadJSON(cm); err != nil {
+		m := &Message{}
+		if err := c.conn.ReadJSON(m); err != nil {
 			c.hub.logger.Println(err)
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
 				c.hub.logger.Println(err)
 			}
 			break
+		}
+		cm := &ClientMessage{
+			ID:         c.ID,
+			ClientType: c.clientType,
+			Status:     m.Status,
 		}
 		c.hub.message <- cm
 	}
