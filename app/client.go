@@ -62,7 +62,7 @@ func (c *Client) WriteMessage() {
 	for {
 		select {
 		case message, ok := <-c.write:
-			c.hub.logger.Printf("client_id:%s %+v\n", c.ID, message)
+			c.hub.logger.Printf("send to client_id:%s %+v\n", c.ID, message)
 			if !ok {
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
