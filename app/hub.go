@@ -7,20 +7,22 @@ import (
 // Hub は登録されているクライアントの管理やメッセージのやり取りを管理する中枢の役割を果たします
 type Hub struct {
 	clients    map[*Client]bool
-	message    chan *Message
+	curatorID  string
+	message    chan *ClientMessage
+	broadcast  chan *GameMessage
 	register   chan *Client
 	unregister chan *Client
-	write      chan []byte
+	IsWatched  bool
 	logger     *log.Logger
 }
 
 func NewHub(logger *log.Logger) *Hub {
 	return &Hub{
 		clients:    make(map[*Client]bool),
-		message:    make(chan *Message),
+		message:    make(chan *ClientMessage),
+		broadcast:  make(chan *GameMessage),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
-		write:      make(chan []byte),
 		logger:     logger,
 	}
 }
@@ -31,35 +33,50 @@ func (h *Hub) Run() {
 		select {
 		case client := <-h.register:
 			h.clients[client] = true
-			h.logger.Printf("%+v connected\n", client)
+			h.logger.Printf("id:%s type:%d connected\n", client.ID, client.clientType)
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)
 				close(client.write)
-				h.logger.Printf("%+v disconnected\n", client)
+				h.logger.Printf("id:%s type:%d disconnected\n", client.ID, client.clientType)
 			}
 		case msg := <-h.message:
 			h.logger.Printf("%+v\n", msg)
-			switch msg.Type {
-			case CLIENT_TYPE_CLIENT:
-				h.send(CLIENT_TYPE_CURATOR, msg.Msg)
-			case CLIENT_TYPE_CURATOR:
-				h.send(CLIENT_TYPE_CLIENT, msg.Msg)
-			}
-			// case clientEvent := <-h.clientEvent:
-			// スマホクライアントからの入力
-			// case curatorEvent := <-h.curatorEvent:
-			// 鬼クライアントからの入力
+			gm := h.complementMessage(msg)
+			h.send(msg.ID, gm)
 		}
 	}
 }
 
-// send は指定したclientTypeのclient全てにメッセージを送ります
-func (h *Hub) send(clientType uint32, msg []byte) {
-	for client, _ := range h.clients {
-		if client.clientType == clientType {
+func (h *Hub) complementMessage(cm *ClientMessage) *GameMessage {
+	cs := make([]string, 0)
+	for key, _ := range h.clients {
+		cs = append(cs, key.ID)
+	}
+	switch cm.ClientType {
+	case CLIENT_TYPE_CLIENT:
+		// クライアントからのメッセージ
+	case CLIENT_TYPE_CURATOR:
+		// 鬼からのメッセージならis_watchedを更新
+		h.IsWatched = cm.Status
+	}
+
+	return &GameMessage{
+		ID:          cm.ID,
+		ClientType:  cm.ClientType,
+		Clients:     cs,
+		DeadClients: []string{},
+		CuratorID:   h.curatorID,
+		IsWatched:   h.IsWatched,
+	}
+}
+
+func (h *Hub) send(cid string, gm *GameMessage) {
+	// 送り主と鬼にメッセージを送信
+	for key, _ := range h.clients {
+		if key.ID == cid || key.ID == h.curatorID {
 			select {
-			case client.write <- msg:
+			case key.write <- gm:
 			}
 		}
 	}

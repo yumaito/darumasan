@@ -1,7 +1,12 @@
 package app
 
 import (
+	"crypto/sha256"
+	"fmt"
+	"io"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -11,6 +16,13 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
+func generateID() string {
+	h := sha256.New()
+	str := strconv.FormatInt(time.Now().UnixNano(), 10)
+	io.WriteString(h, str)
+	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
 // ClientHandler はスマホ端末側がつなぐエンドポイントのhandlerです
 func ClientHandler(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -18,10 +30,10 @@ func ClientHandler(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		hub.logger.Println("error upgrade:", err)
 		return
 	}
-	client := NewClient(hub, conn, CLIENT_TYPE_CLIENT)
+	id := generateID()
+	client := NewClient(hub, conn, id, CLIENT_TYPE_CLIENT)
 
 	hub.register <- client
-	hub.logger.Println("connected /client")
 	go client.ReadMessage()
 	go client.WriteMessage()
 }
@@ -32,9 +44,9 @@ func CuratorHandler(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		hub.logger.Println("error upgrade:", err)
 	}
-	client := NewClient(hub, conn, CLIENT_TYPE_CURATOR)
+	id := generateID()
+	client := NewClient(hub, conn, id, CLIENT_TYPE_CURATOR)
 	hub.register <- client
-	hub.logger.Println("connected /curator")
 	go client.ReadMessage()
 	go client.WriteMessage()
 }

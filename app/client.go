@@ -1,9 +1,6 @@
 package app
 
 import (
-	"bytes"
-	"io"
-
 	"github.com/gorilla/websocket"
 )
 
@@ -18,16 +15,18 @@ var (
 
 type Client struct {
 	hub        *Hub
+	ID         string
 	conn       *websocket.Conn
-	write      chan []byte
+	write      chan *GameMessage
 	clientType uint32
 }
 
-func NewClient(hub *Hub, conn *websocket.Conn, clientType uint32) *Client {
+func NewClient(hub *Hub, conn *websocket.Conn, id string, clientType uint32) *Client {
 	return &Client{
 		hub:        hub,
+		ID:         id,
 		conn:       conn,
-		write:      make(chan []byte),
+		write:      make(chan *GameMessage),
 		clientType: clientType,
 	}
 }
@@ -35,27 +34,21 @@ func NewClient(hub *Hub, conn *websocket.Conn, clientType uint32) *Client {
 func (c *Client) Disconnect() {
 	c.conn.Close()
 	c.hub.unregister <- c
-	c.hub.logger.Println("Disconnect")
+	c.hub.logger.Println("Disconnect:", c.ID)
 }
 
 func (c *Client) ReadMessage() {
 	defer c.Disconnect()
 	for {
-		_, reader, err := c.conn.NextReader()
-		if err != nil {
+		cm := &ClientMessage{}
+		if err := c.conn.ReadJSON(cm); err != nil {
 			c.hub.logger.Println(err)
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
 				c.hub.logger.Println(err)
 			}
 			break
 		}
-		var b []byte
-		w := bytes.NewBuffer(b)
-		if _, err := io.Copy(w, reader); err != nil {
-			c.hub.logger.Println(err)
-		}
-		m := NewMessage(c.clientType, w.Bytes())
-		c.hub.message <- m
+		c.hub.message <- cm
 	}
 }
 
@@ -68,18 +61,7 @@ func (c *Client) WriteMessage() {
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
-			w, err := c.conn.NextWriter(websocket.TextMessage)
-			if err != nil {
-				c.hub.logger.Println(err)
-			}
-			w.Write(message)
-			// キューされたmessageを順に処理
-			n := len(c.write)
-			for i := 0; i < n; i++ {
-				w.Write(newline)
-				w.Write(<-c.write)
-			}
-			if err := w.Close(); err != nil {
+			if err := c.conn.WriteJSON(message); err != nil {
 				c.hub.logger.Println(err)
 			}
 		}
