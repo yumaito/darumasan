@@ -39,12 +39,17 @@ func (h *Hub) Run() {
 			if client.clientType == CLIENT_TYPE_CURATOR {
 				h.curatorID = client.ID
 			}
-			initMsg := h.initialMessage(client)
+			initMsg := h.messageByConnectionEvent(client)
 			h.sendToClientAndCurator(client.ID, initMsg)
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)
 				close(client.write)
+				// クライアントが切断した場合鬼側にも送る
+				if client.clientType == CLIENT_TYPE_CLIENT {
+					msg := h.messageByConnectionEvent(client)
+					h.sendToClientAndCurator(h.curatorID, msg)
+				}
 				h.logger.Printf("id:%s type:%d disconnected\n", client.ID, client.clientType)
 			}
 		case msg := <-h.message:
@@ -93,8 +98,8 @@ func (h *Hub) createMessage(cm *ClientMessage) *GameMessage {
 	}
 }
 
-// initialMessage はclientが接続したときに鬼と接続クライアントに対して送られる初期メッセージを作成します
-func (h *Hub) initialMessage(client *Client) *GameMessage {
+// messageByConnectionEvent はクライアントの接続に応じてメッセージを作成します
+func (h *Hub) messageByConnectionEvent(client *Client) *GameMessage {
 	cs := make([]string, 0)
 	for key, _ := range h.clients {
 		cs = append(cs, key.ID)
