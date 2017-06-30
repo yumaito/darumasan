@@ -10,6 +10,7 @@ import (
 
 func main() {
 	logger := log.New(os.Stdout, "", log.Lshortfile)
+	logger.Println("server started now")
 
 	hub := app.NewHub(logger)
 	go hub.Run()
