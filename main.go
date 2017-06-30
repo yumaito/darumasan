@@ -3,14 +3,19 @@ package main
 import (
 	"log"
 	"net/http"
-	"os"
+	// "os"
 
 	"github.com/yumaito/darumasan/app"
+	"go.uber.org/zap"
 )
 
 func main() {
-	logger := log.New(os.Stdout, "", log.Lshortfile)
-	logger.Println("server started now")
+	logger, err := zap.NewProduction()
+	if err != nil {
+		log.Println("error new logger:", err)
+		return
+	}
+	logger.Info("server started")
 
 	hub := app.NewHub(logger)
 	go hub.Run()
@@ -21,6 +26,8 @@ func main() {
 		app.CuratorHandler(hub, w, r)
 	})
 	if err := http.ListenAndServe(":8080", nil); err != nil {
-		logger.Println("ListenAndServe:", err.Error())
+		logger.Error("ListenAndServe",
+			zap.String("msg", err.Error()),
+		)
 	}
 }

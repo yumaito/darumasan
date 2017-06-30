@@ -1,8 +1,17 @@
 hash: b5a68af48abcc140b2d7942aaf4f2dcdef62a662d44930e4c6a8930fccdef273
-updated: 2017-06-30T23:24:49.151469302+09:00
+updated: 2017-07-01T07:47:28.997035982+09:00
 imports:
 - name: github.com/gorilla/websocket
   version: ea4d1f681babbce9545c9c5f3d5194a789c89f5b
+- name: go.uber.org/atomic
+  version: 4e336646b2ef9fc6e47be8e21594178f98e5ebcf
 - name: go.uber.org/zap
   version: 9cabc84638b70e564c3dab2766efcb1ded2aac9f
+  subpackages:
+  - buffer
+  - internal/bufferpool
+  - internal/color
+  - internal/exit
+  - internal/multierror
+  - zapcore
 testImports: []
