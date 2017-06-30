@@ -2,6 +2,7 @@ package app
 
 import (
 	"log"
+	"time"
 )
 
 // Hub は登録されているクライアントの管理やメッセージのやり取りを管理する中枢の役割を果たします
@@ -95,6 +96,7 @@ func (h *Hub) createMessage(cm *ClientMessage) *GameMessage {
 		DeadClients: h.deadClients,
 		CuratorID:   h.curatorID,
 		IsWatched:   h.IsWatched,
+		CreatedAt:   time.Now(),
 	}
 }
 
@@ -111,6 +113,7 @@ func (h *Hub) messageByConnectionEvent(client *Client) *GameMessage {
 		DeadClients: h.deadClients,
 		CuratorID:   h.curatorID,
 		IsWatched:   h.IsWatched,
+		CreatedAt:   time.Now(),
 	}
 }
 
@@ -127,6 +130,7 @@ func (h *Hub) sendToClientAndCurator(cid string, gm *GameMessage) {
 				DeadClients: gm.DeadClients,
 				CuratorID:   gm.CuratorID,
 				IsWatched:   gm.IsWatched,
+				CreatedAt:   gm.CreatedAt,
 			}
 			key.write <- msg
 		}

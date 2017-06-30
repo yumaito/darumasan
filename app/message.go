@@ -1,14 +1,19 @@
 package app
 
+import (
+	"time"
+)
+
 // GameMessage はサーバーから送信されるメッセージ
 type GameMessage struct {
-	From        string   `json:"from"`
-	To          string   `json:"to"`
-	ClientType  uint32   `json:"client_type"`
-	Clients     []string `json:"clients"`
-	DeadClients []string `json:"dead_clients"`
-	CuratorID   string   `json:"curator_id"`
-	IsWatched   bool     `json:"is_watched"`
+	From        string    `json:"from"`
+	To          string    `json:"to"`
+	ClientType  uint32    `json:"client_type"`
+	Clients     []string  `json:"clients"`
+	DeadClients []string  `json:"dead_clients"`
+	CuratorID   string    `json:"curator_id"`
+	IsWatched   bool      `json:"is_watched"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 // Message はクライアントから直接送られてくるメッセージ

@@ -50,7 +50,8 @@ $ go run main.go
     "clients":["b33056f5a7","d210d0acec"],
     "dead_clients":["b33056f5a7"],
     "curator_id":"d210d0acec",
-    "is_watched":true
+    "is_watched":true,
+    "created_at":"2017-06-30T22:44:02.63496681+09:00"
 }
 ```
 
