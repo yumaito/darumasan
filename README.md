@@ -42,6 +42,7 @@ $ go run main.go
 * dead_clientsは既にアウトになったIDの配列
 * curator_idは鬼のID
 * is_watchedは判定中かどうか
+* created_atはこのメッセージが発生した時刻
 ```json
 {
     "from":"b33056f5a7",
