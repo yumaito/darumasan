@@ -21,6 +21,7 @@ $ go run main.go
 
 * プレイヤー端末 `ws://{domain}/client`
 * 鬼端末 `ws://{domain}/curator`
+* 鬼にタッチするときのボタン的なやつ `ws://{domain}/button`
 
 ### メッセージの形式
 
