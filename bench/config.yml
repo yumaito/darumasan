@@ -1,0 +1,22 @@
+host: "localhost:8080"
+clients:
+  - number: 2
+    client:
+      rate: 50
+      duration: 300
+      type: 1
+  - number: 2
+    client:
+      rate: 70
+      duration: 500
+      type: 1
+  - number: 1
+    client:
+      rate: 100
+      duration: 2000
+      type: 2
+  - number: 1
+    client:
+      rate: 100
+      duration: 10000
+      type: 3

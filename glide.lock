@@ -1,5 +1,5 @@
-hash: 8c78659671fdcdf7bb45c843718c552ce83c72b2f9118997ecb6ad02cc2f7fdb
-updated: 2017-07-01T16:40:26.303877713+09:00
+hash: 68003ae2d48e5df60b1af9fa6e0c5bb74ff7b6143c77beb5fa6bf70a72f84811
+updated: 2017-07-01T18:20:36.89166688+09:00
 imports:
 - name: github.com/Code-Hex/sigctx
   version: 05e1d0fd7ea4d71c995d8d687451e740a9d2d6d8
@@ -16,4 +16,6 @@ imports:
   - internal/exit
   - internal/multierror
   - zapcore
+- name: gopkg.in/yaml.v2
+  version: a3f3340b5840cee44f372bddb5880fcbc419b46a
 testImports: []

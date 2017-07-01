@@ -2,35 +2,56 @@ package main
 
 import (
 	"context"
+	"flag"
+	"io/ioutil"
 	"log"
 	"os"
 	"sync"
 	"syscall"
-	"time"
 
 	"github.com/Code-Hex/sigctx"
-	"github.com/yumaito/darumasan/app"
 	"github.com/yumaito/darumasan/bench/client"
+	"gopkg.in/yaml.v2"
 )
 
-func main() {
-	logger := log.New(os.Stdout, "", log.Lshortfile)
+var (
+	configFile = flag.String("c", "config.yml", "config file")
+)
 
-	clients := make([]*client.Client, 5)
-	for i := 0; i < len(clients); i++ {
-		c, err := client.NewClient(100, time.Second, app.CLIENT_TYPE_CLIENT, logger)
-		if err != nil {
-			logger.Println(err)
-			return
-		}
-		clients[i] = c
-	}
-	curator, err := client.NewClient(100, 3*time.Second, app.CLIENT_TYPE_CURATOR, logger)
+type Config struct {
+	Host    string `yaml:"host"`
+	Clients []struct {
+		Number int            `yaml:"number"`
+		Client *client.Config `yaml:"client"`
+	} `yaml:"clients"`
+}
+
+func main() {
+	flag.Parse()
+	logger := log.New(os.Stdout, "", log.Lshortfile)
+	// configの読み込み
+	conf := &Config{}
+	buf, err := ioutil.ReadFile(*configFile)
 	if err != nil {
 		logger.Println(err)
 		return
 	}
-	clients = append(clients, curator)
+	if err := yaml.Unmarshal(buf, conf); err != nil {
+		logger.Println(err)
+		return
+	}
+	//
+	clients := make([]*client.Client, 0)
+	for _, c := range conf.Clients {
+		for i := 0; i < c.Number; i++ {
+			client, err := client.NewClient(c.Client, conf.Host, logger)
+			if err != nil {
+				logger.Println(err)
+				return
+			}
+			clients = append(clients, client)
+		}
+	}
 
 	wg := &sync.WaitGroup{}
 	ctx := sigctx.WithCancelSignals(
@@ -42,7 +63,6 @@ func main() {
 	for _, c := range clients {
 		wg.Add(1)
 		go func(c *client.Client) {
-			logger.Printf("%p: %+v\n", c, c)
 			c.Run(ctx)
 			wg.Done()
 		}(c)

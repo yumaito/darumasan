@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand"
 	"net/url"
 	"time"
 
@@ -12,23 +13,30 @@ import (
 )
 
 const (
-	SERVER            = "localhost:8080"
 	CLIENT_END_POINT  = "client"
 	CURATOR_END_POINT = "curator"
 	BUTTON_END_POINT  = "button"
 )
 
 type Client struct {
-	rate         uint32
-	tickDuration time.Duration
-	clientType   uint32
-	logger       *log.Logger
-	url          url.URL
+	config *Config
+	logger *log.Logger
+	url    url.URL
 }
 
-func NewClient(rate uint32, duration time.Duration, clientType uint32, logger *log.Logger) (*Client, error) {
+type Config struct {
+	Rate     int    `yaml:"rate"`
+	Duration int64  `yaml:"duration"`
+	Type     uint32 `yaml:"type"`
+}
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
+func NewClient(conf *Config, host string, logger *log.Logger) (*Client, error) {
 	var path string
-	switch clientType {
+	switch conf.Type {
 	case app.CLIENT_TYPE_CLIENT:
 		path = "/" + CLIENT_END_POINT
 	case app.CLIENT_TYPE_CURATOR:
@@ -36,20 +44,18 @@ func NewClient(rate uint32, duration time.Duration, clientType uint32, logger *l
 	case app.CLIENT_TYPE_BUTTON:
 		path = "/" + BUTTON_END_POINT
 	default:
-		return nil, fmt.Errorf("invalid clientType:%d", clientType)
+		return nil, fmt.Errorf("invalid clientType:%d", conf.Type)
 	}
 
 	u := url.URL{
 		Scheme: "ws",
-		Host:   SERVER,
+		Host:   host,
 		Path:   path,
 	}
 	return &Client{
-		rate:         rate,
-		tickDuration: duration,
-		clientType:   clientType,
-		logger:       logger,
-		url:          u,
+		config: conf,
+		logger: logger,
+		url:    u,
 	}, nil
 }
 
@@ -60,7 +66,8 @@ func (c *Client) Run(ctx context.Context) {
 		return
 	}
 	c.logger.Printf("connected to:%s\n", c.url.String())
-	ticker := time.NewTicker(c.tickDuration)
+	t := time.Duration(c.config.Duration) * time.Millisecond
+	ticker := time.NewTicker(t)
 
 	status := false
 	defer conn.Close()
@@ -69,7 +76,14 @@ func (c *Client) Run(ctx context.Context) {
 	for {
 		select {
 		case <-ticker.C:
-			if c.clientType == app.CLIENT_TYPE_CURATOR {
+			// 鬼は一定時間ごとにtrueとfalseをトグルするだけ
+			switch c.config.Type {
+			case app.CLIENT_TYPE_CURATOR:
+				status = true
+			default:
+				status = c.rateSelector(c.config.Rate)
+			}
+			if c.config.Type == app.CLIENT_TYPE_CURATOR {
 				status = !status
 			} else {
 				status = true
@@ -91,4 +105,12 @@ func (c *Client) Run(ctx context.Context) {
 			return
 		}
 	}
+}
+
+func (c *Client) rateSelector(rate int) bool {
+	number := rand.Intn(100)
+	if (number + rate) >= 100 {
+		return true
+	}
+	return false
 }
