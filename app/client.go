@@ -8,6 +8,7 @@ import (
 const (
 	CLIENT_TYPE_CLIENT  = 1
 	CLIENT_TYPE_CURATOR = 2
+	CLIENT_TYPE_BUTTON  = 3
 )
 
 type Client struct {

@@ -24,6 +24,9 @@ func main() {
 	http.HandleFunc("/curator", func(w http.ResponseWriter, r *http.Request) {
 		app.CuratorHandler(hub, w, r)
 	})
+	http.HandleFunc("/button", func(w http.ResponseWriter, r *http.Request) {
+		app.ButtonHandler(hub, w, r)
+	})
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		logger.Error("ListenAndServe",
 			zap.String("msg", err.Error()),

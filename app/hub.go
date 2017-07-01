@@ -62,7 +62,11 @@ func (h *Hub) Run() {
 			}
 		case msg := <-h.message:
 			gm := h.createMessage(msg)
-			h.sendToClientAndCurator(msg.ID, gm)
+			if msg.ClientType == CLIENT_TYPE_BUTTON {
+				h.sendToAllClient(gm)
+			} else {
+				h.sendToClientAndCurator(msg.ID, gm)
+			}
 		}
 	}
 }
@@ -140,5 +144,21 @@ func (h *Hub) sendToClientAndCurator(cid string, gm *GameMessage) {
 			}
 			key.write <- msg
 		}
+	}
+}
+
+func (h *Hub) sendToAllClient(gm *GameMessage) {
+	for key, _ := range h.clients {
+		msg := &GameMessage{
+			From:        gm.From,
+			To:          key.ID,
+			ClientType:  gm.ClientType,
+			Clients:     gm.Clients,
+			DeadClients: gm.DeadClients,
+			CuratorID:   gm.CuratorID,
+			IsWatched:   gm.IsWatched,
+			CreatedAt:   gm.CreatedAt,
+		}
+		key.write <- msg
 	}
 }
