@@ -76,6 +76,10 @@ func (h *Hub) Run() {
 					zap.Uint32("client_type", client.clientType),
 				)
 			}
+			// 鬼が接続から切れた場合deadClientsを初期化する
+			if client.clientType == CLIENT_TYPE_CURATOR {
+				h.deadClients = make([]string, 0)
+			}
 		case msg := <-h.message:
 			gm := h.createMessage(msg)
 			if msg.ClientType == CLIENT_TYPE_BUTTON {
