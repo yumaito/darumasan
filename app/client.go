@@ -39,9 +39,11 @@ func (c *Client) ReadMessage() {
 	for {
 		m := &Message{}
 		if err := c.conn.ReadJSON(m); err != nil {
-			c.hub.logger.Error("ReadJSON",
-				zap.String("msg", err.Error()),
-			)
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseNormalClosure) {
+				c.hub.logger.Error("ReadJSON",
+					zap.String("msg", err.Error()),
+				)
+			}
 			break
 		}
 		cm := &ClientMessage{
