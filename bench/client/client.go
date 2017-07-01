@@ -128,7 +128,7 @@ func (c *Client) Run(ctx context.Context) {
 }
 
 func (c *Client) read(ctx context.Context) {
-	defer c.Stop()
+	defer c.conn.Close()
 	for {
 		m := &app.GameMessage{}
 		if err := c.conn.ReadJSON(m); err != nil {
