@@ -89,7 +89,7 @@ func (c *Client) Run(ctx context.Context) {
 		case <-ticker.C:
 			// 鬼は一定時間ごとにtrueとfalseをトグルするだけ
 			// 送信ストップフラグが立っていないときだけ送信する
-			//（クリアした時、アウトになったときにフラグが立つ）
+			//（アウトになったときにフラグが立つ）
 			if !c.sendStopped {
 				switch c.config.Type {
 				case app.CLIENT_TYPE_CURATOR:
