@@ -10,10 +10,6 @@ const (
 	CLIENT_TYPE_CURATOR = 2
 )
 
-var (
-	newline = []byte{'\n'}
-)
-
 type Client struct {
 	hub        *Hub
 	ID         string
