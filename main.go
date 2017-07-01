@@ -30,6 +30,7 @@ func main() {
 	http.HandleFunc("/monitor", func(w http.ResponseWriter, r *http.Request) {
 		app.MonitorHandler(hub, w, r)
 	})
+	http.Handle("/", http.FileServer(http.Dir("root")))
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		logger.Error("ListenAndServe",
 			zap.String("msg", err.Error()),
