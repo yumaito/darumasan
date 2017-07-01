@@ -25,9 +25,9 @@ type Client struct {
 }
 
 type Config struct {
-	Rate     int    `yaml:"rate"`
-	Duration int64  `yaml:"duration"`
-	Type     uint32 `yaml:"type"`
+	Rate     int    `yaml:"rate"`     // trueになる確率(playerの場合アウトになる確率)
+	Duration int64  `yaml:"duration"` // 信号を送信するインターバル(ミリ秒)
+	Type     uint32 `yaml:"type"`     // クライントのタイプ
 }
 
 func init() {
