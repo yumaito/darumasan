@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"net/http"
-	// "os"
 
 	"github.com/yumaito/darumasan/app"
 	"go.uber.org/zap"

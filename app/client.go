@@ -45,11 +45,6 @@ func (c *Client) ReadMessage() {
 			c.hub.logger.Error("ReadJSON",
 				zap.String("msg", err.Error()),
 			)
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
-				c.hub.logger.Error("unexpected close error",
-					zap.String("msg", err.Error()),
-				)
-			}
 			break
 		}
 		cm := &ClientMessage{
