@@ -27,6 +27,9 @@ func main() {
 	http.HandleFunc("/button", func(w http.ResponseWriter, r *http.Request) {
 		app.ButtonHandler(hub, w, r)
 	})
+	http.HandleFunc("/monitor", func(w http.ResponseWriter, r *http.Request) {
+		app.MonitorHandler(hub, w, r)
+	})
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		logger.Error("ListenAndServe",
 			zap.String("msg", err.Error()),

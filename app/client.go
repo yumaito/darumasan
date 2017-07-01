@@ -9,6 +9,7 @@ const (
 	CLIENT_TYPE_CLIENT  = 1
 	CLIENT_TYPE_CURATOR = 2
 	CLIENT_TYPE_BUTTON  = 3
+	CLIENT_TYPE_MONITOR = 4
 )
 
 type Client struct {

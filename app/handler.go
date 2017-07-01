@@ -70,3 +70,17 @@ func ButtonHandler(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	go client.ReadMessage()
 	go client.WriteMessage()
 }
+
+func MonitorHandler(hub *Hub, w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		hub.logger.Error("monitor connection",
+			zap.String("msg", err.Error()),
+		)
+	}
+	id := generateID()
+	client := NewClient(hub, conn, id, CLIENT_TYPE_MONITOR)
+	hub.register <- client
+	// monitorからサーバーへの送信は行わないのでクライアントへの書き込みのみ
+	go client.WriteMessage()
+}
