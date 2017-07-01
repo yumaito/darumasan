@@ -66,13 +66,15 @@ func (c *Client) WriteMessage() {
 		case message, ok := <-c.write:
 			if !ok {
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				return
+				break
 			}
 			if err := c.conn.WriteJSON(message); err != nil {
-				c.hub.logger.Error("WriteJSON",
-					zap.String("msg", err.Error()),
-				)
-				return
+				if websocket.IsUnexpectedCloseError(err, websocket.CloseNormalClosure) {
+					c.hub.logger.Error("WriteJSON",
+						zap.String("msg", err.Error()),
+					)
+				}
+				break
 			}
 			c.hub.logger.Info("send message",
 				zap.Object("message", message),
