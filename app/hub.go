@@ -1,8 +1,9 @@
 package app
 
 import (
-	"log"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 // Hub は登録されているクライアントの管理やメッセージのやり取りを管理する中枢の役割を果たします
@@ -14,10 +15,10 @@ type Hub struct {
 	register    chan *Client
 	unregister  chan *Client
 	IsWatched   bool
-	logger      *log.Logger
+	logger      *zap.Logger
 }
 
-func NewHub(logger *log.Logger) *Hub {
+func NewHub(logger *zap.Logger) *Hub {
 	return &Hub{
 		clients:     make(map[*Client]bool),
 		deadClients: []string{},
@@ -36,7 +37,10 @@ func (h *Hub) Run() {
 			// 接続クライアントの登録
 			// 鬼が接続した場合は鬼として登録
 			h.clients[client] = true
-			h.logger.Printf("id:%s type:%d connected\n", client.ID, client.clientType)
+			h.logger.Info("client connected",
+				zap.String("client_id", client.ID),
+				zap.Uint32("client_type", client.clientType),
+			)
 			if client.clientType == CLIENT_TYPE_CURATOR {
 				h.curatorID = client.ID
 			}
@@ -51,10 +55,12 @@ func (h *Hub) Run() {
 					msg := h.messageByConnectionEvent(client)
 					h.sendToClientAndCurator(h.curatorID, msg)
 				}
-				h.logger.Printf("id:%s type:%d disconnected\n", client.ID, client.clientType)
+				h.logger.Info("client disconnected",
+					zap.String("client_id", client.ID),
+					zap.Uint32("client_type", client.clientType),
+				)
 			}
 		case msg := <-h.message:
-			h.logger.Printf("receive from %s %+v\n", msg.ID, msg)
 			gm := h.createMessage(msg)
 			h.sendToClientAndCurator(msg.ID, gm)
 		}

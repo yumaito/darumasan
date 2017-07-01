@@ -2,6 +2,7 @@ package app
 
 import (
 	"github.com/gorilla/websocket"
+	"go.uber.org/zap"
 )
 
 const (
@@ -34,7 +35,6 @@ func NewClient(hub *Hub, conn *websocket.Conn, id string, clientType uint32) *Cl
 func (c *Client) Disconnect() {
 	c.conn.Close()
 	c.hub.unregister <- c
-	c.hub.logger.Println("Disconnect:", c.ID)
 }
 
 func (c *Client) ReadMessage() {
@@ -42,10 +42,9 @@ func (c *Client) ReadMessage() {
 	for {
 		m := &Message{}
 		if err := c.conn.ReadJSON(m); err != nil {
-			c.hub.logger.Println(err)
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
-				c.hub.logger.Println(err)
-			}
+			c.hub.logger.Error("ReadJSON",
+				zap.String("msg", err.Error()),
+			)
 			break
 		}
 		cm := &ClientMessage{
@@ -53,6 +52,9 @@ func (c *Client) ReadMessage() {
 			ClientType: c.clientType,
 			Status:     m.Status,
 		}
+		c.hub.logger.Info("message received",
+			zap.Object("message", m),
+		)
 		c.hub.message <- cm
 	}
 }
@@ -62,14 +64,18 @@ func (c *Client) WriteMessage() {
 	for {
 		select {
 		case message, ok := <-c.write:
-			c.hub.logger.Printf("send to client_id:%s %+v\n", c.ID, message)
 			if !ok {
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
 			if err := c.conn.WriteJSON(message); err != nil {
-				c.hub.logger.Println(err)
+				c.hub.logger.Error("WriteJSON",
+					zap.String("msg", err.Error()),
+				)
 			}
+			c.hub.logger.Info("send message",
+				zap.Object("message", message),
+			)
 		}
 	}
 }

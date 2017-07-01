@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"go.uber.org/zap"
 )
 
 var upgrader = websocket.Upgrader{
@@ -28,7 +29,9 @@ func generateID() string {
 func ClientHandler(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		hub.logger.Println("error upgrade:", err)
+		hub.logger.Error("client connection",
+			zap.String("msg", err.Error()),
+		)
 		return
 	}
 	id := generateID()
@@ -43,7 +46,9 @@ func ClientHandler(hub *Hub, w http.ResponseWriter, r *http.Request) {
 func CuratorHandler(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		hub.logger.Println("error upgrade:", err)
+		hub.logger.Error("curator connection",
+			zap.String("msg", err.Error()),
+		)
 	}
 	id := generateID()
 	client := NewClient(hub, conn, id, CLIENT_TYPE_CURATOR)
