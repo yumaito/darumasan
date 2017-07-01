@@ -72,6 +72,7 @@ func (c *Client) WriteMessage() {
 				c.hub.logger.Error("WriteJSON",
 					zap.String("msg", err.Error()),
 				)
+				return
 			}
 			c.hub.logger.Info("send message",
 				zap.Object("message", message),
