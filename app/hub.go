@@ -49,14 +49,11 @@ func (h *Hub) Run() {
 				zap.String("client_id", client.ID),
 				zap.Uint32("client_type", client.clientType),
 			)
-			// モニタークライアント以外なら接続メッセージ
-			if client.clientType != CLIENT_TYPE_MONITOR {
-				if client.clientType == CLIENT_TYPE_CURATOR {
-					h.curatorID = client.ID
-				}
-				initMsg := h.messageByConnectionEvent(client)
-				h.sendToClientAndCurator(client.ID, initMsg)
+			if client.clientType == CLIENT_TYPE_CURATOR {
+				h.curatorID = client.ID
 			}
+			initMsg := h.messageByConnectionEvent(client)
+			h.sendToClientAndCurator(client.ID, initMsg)
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)

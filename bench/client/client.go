@@ -79,7 +79,7 @@ func (c *Client) Run(ctx context.Context) {
 			// 鬼は一定時間ごとにtrueとfalseをトグルするだけ
 			switch c.config.Type {
 			case app.CLIENT_TYPE_CURATOR:
-				status = true
+				status = !status
 			default:
 				status = c.rateSelector(c.config.Rate)
 			}
