@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/url"
-	"os"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -23,7 +22,6 @@ type Client struct {
 	rate         uint32
 	tickDuration time.Duration
 	clientType   uint32
-	interrupt    chan os.Signal
 	logger       *log.Logger
 	url          url.URL
 }
@@ -62,10 +60,27 @@ func (c *Client) Run(ctx context.Context) {
 		return
 	}
 	c.logger.Printf("connected to:%s\n", c.url.String())
+	ticker := time.NewTicker(c.tickDuration)
+
+	status := false
 	defer conn.Close()
 	defer c.logger.Printf("disconnected from:%s\n", c.url.String())
+	defer ticker.Stop()
 	for {
 		select {
+		case <-ticker.C:
+			if c.clientType == app.CLIENT_TYPE_CURATOR {
+				status = !status
+			} else {
+				status = true
+			}
+			m := &app.Message{
+				Status: status,
+			}
+			if err := conn.WriteJSON(m); err != nil {
+				c.logger.Println(err)
+				return
+			}
 		case <-ctx.Done():
 			err := conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 			if err != nil {

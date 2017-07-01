@@ -25,6 +25,12 @@ func main() {
 		}
 		clients[i] = c
 	}
+	curator, err := client.NewClient(100, 3*time.Second, app.CLIENT_TYPE_CURATOR, logger)
+	if err != nil {
+		logger.Println(err)
+		return
+	}
+	clients = append(clients, curator)
 
 	wg := &sync.WaitGroup{}
 	ctx := sigctx.WithCancelSignals(
@@ -33,37 +39,13 @@ func main() {
 		syscall.SIGTERM,
 		syscall.SIGHUP,
 	)
-	for _, client := range clients {
+	for _, c := range clients {
 		wg.Add(1)
-		go func() {
-			client.Run(ctx)
+		go func(c *client.Client) {
+			logger.Printf("%p: %+v\n", c, c)
+			c.Run(ctx)
 			wg.Done()
-		}()
+		}(c)
 	}
 	wg.Wait()
-
-	//ticker := time.NewTicker(time.Second)
-	//defer ticker.Stop()
-	//for {
-	//	select {
-	//	case <-ticker.C:
-	//		m := &app.Message{
-	//			Status: true,
-	//		}
-	//		if err := c.WriteJSON(m); err != nil {
-	//			logger.Println(err)
-	//			return
-	//		}
-	//		logger.Printf("send message: %+v\n", m)
-	//	case <-interrupt:
-	//		logger.Println("interrupt")
-	//		err := c.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-	//		if err != nil {
-	//			logger.Println("write close:", err)
-	//			return
-	//		}
-	//		c.Close()
-	//		return
-	//	}
-	//}
 }
