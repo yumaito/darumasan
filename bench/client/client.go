@@ -80,15 +80,24 @@ func (c *Client) Run(ctx context.Context) {
 			switch c.config.Type {
 			case app.CLIENT_TYPE_CURATOR:
 				status = !status
+				m := &app.Message{
+					Status: status,
+				}
+				if err := conn.WriteJSON(m); err != nil {
+					c.logger.Println(err)
+					return
+				}
 			default:
 				status = c.rateSelector(c.config.Rate)
-			}
-			m := &app.Message{
-				Status: status,
-			}
-			if err := conn.WriteJSON(m); err != nil {
-				c.logger.Println(err)
-				return
+				if status {
+					m := &app.Message{
+						Status: status,
+					}
+					if err := conn.WriteJSON(m); err != nil {
+						c.logger.Println(err)
+						return
+					}
+				}
 			}
 		case <-ctx.Done():
 			err := conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
