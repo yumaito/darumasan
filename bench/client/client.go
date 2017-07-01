@@ -19,9 +19,12 @@ const (
 )
 
 type Client struct {
-	config *Config
-	logger *log.Logger
-	url    url.URL
+	config      *Config
+	logger      *log.Logger
+	url         url.URL
+	sendStopped bool
+	status      bool
+	conn        *websocket.Conn
 }
 
 type Config struct {
@@ -52,11 +55,19 @@ func NewClient(conf *Config, host string, logger *log.Logger) (*Client, error) {
 		Host:   host,
 		Path:   path,
 	}
-	return &Client{
-		config: conf,
-		logger: logger,
-		url:    u,
-	}, nil
+	c := &Client{
+		config:      conf,
+		logger:      logger,
+		url:         u,
+		sendStopped: false,
+		status:      false,
+	}
+	return c, nil
+}
+
+func (c *Client) Stop() {
+	c.conn.Close()
+	c.logger.Printf("disconnected from:%s\n", c.url.String())
 }
 
 func (c *Client) Run(ctx context.Context) {
@@ -65,37 +76,42 @@ func (c *Client) Run(ctx context.Context) {
 		c.logger.Println("dial:", err)
 		return
 	}
+	c.conn = conn
 	c.logger.Printf("connected to:%s\n", c.url.String())
 	t := time.Duration(c.config.Duration) * time.Millisecond
 	ticker := time.NewTicker(t)
 
-	status := false
-	defer conn.Close()
-	defer c.logger.Printf("disconnected from:%s\n", c.url.String())
+	go c.read(ctx)
+	defer c.Stop()
 	defer ticker.Stop()
 	for {
 		select {
 		case <-ticker.C:
 			// 鬼は一定時間ごとにtrueとfalseをトグルするだけ
-			switch c.config.Type {
-			case app.CLIENT_TYPE_CURATOR:
-				status = !status
-				m := &app.Message{
-					Status: status,
-				}
-				if err := conn.WriteJSON(m); err != nil {
-					c.logger.Println(err)
-					return
-				}
-			default:
-				status = c.rateSelector(c.config.Rate)
-				if status {
+			// 送信ストップフラグが立っていないときだけ送信する
+			//（アウトになったときにフラグが立つ）
+			if !c.sendStopped {
+				switch c.config.Type {
+				case app.CLIENT_TYPE_CURATOR:
+					c.status = !c.status
 					m := &app.Message{
-						Status: status,
+						Status: c.status,
 					}
 					if err := conn.WriteJSON(m); err != nil {
 						c.logger.Println(err)
 						return
+					}
+					c.logger.Printf("send to %s, status: %v", c.url.String(), m.Status)
+				default:
+					if c.rateSelector(c.config.Rate) {
+						m := &app.Message{
+							Status: true,
+						}
+						if err := conn.WriteJSON(m); err != nil {
+							c.logger.Println(err)
+							return
+						}
+						c.logger.Printf("send to %s, status: %v", c.url.String(), m.Status)
 					}
 				}
 			}
@@ -107,6 +123,34 @@ func (c *Client) Run(ctx context.Context) {
 			}
 			conn.Close()
 			return
+		}
+	}
+}
+
+func (c *Client) read(ctx context.Context) {
+	defer c.Stop()
+	for {
+		m := &app.GameMessage{}
+		if err := c.conn.ReadJSON(m); err != nil {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseNormalClosure) {
+				c.logger.Println(err)
+			}
+			return
+		}
+		if !c.sendStopped {
+			for _, id := range m.DeadClients {
+				if id == m.To {
+					c.sendStopped = true
+				}
+			}
+			if c.sendStopped {
+				c.logger.Printf("connection to %s: send stopped", c.url.String())
+			}
+		}
+		select {
+		case <-ctx.Done():
+			return
+		default:
 		}
 	}
 }
