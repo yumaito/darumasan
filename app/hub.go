@@ -11,6 +11,7 @@ type Hub struct {
 	clients        map[*Client]bool
 	monitorClients map[*Client]bool
 	curatorID      string
+	buttonID       string
 	deadClients    []string
 	message        chan *ClientMessage
 	register       chan *Client
@@ -51,6 +52,8 @@ func (h *Hub) Run() {
 			)
 			if client.clientType == CLIENT_TYPE_CURATOR {
 				h.curatorID = client.ID
+			} else if client.clientType == CLIENT_TYPE_BUTTON {
+				h.buttonID = client.ID
 			}
 			initMsg := h.messageByConnectionEvent(client)
 			h.sendToClientAndCurator(client.ID, initMsg)
@@ -125,6 +128,7 @@ func (h *Hub) createMessage(cm *ClientMessage) *GameMessage {
 		Clients:     cs,
 		DeadClients: h.deadClients,
 		CuratorID:   h.curatorID,
+		ButtonID:    h.buttonID,
 		IsWatched:   h.IsWatched,
 		CreatedAt:   time.Now(),
 	}
@@ -142,6 +146,7 @@ func (h *Hub) messageByConnectionEvent(client *Client) *GameMessage {
 		Clients:     cs,
 		DeadClients: h.deadClients,
 		CuratorID:   h.curatorID,
+		ButtonID:    h.buttonID,
 		IsWatched:   h.IsWatched,
 		CreatedAt:   time.Now(),
 	}
@@ -159,6 +164,7 @@ func (h *Hub) sendToClientAndCurator(cid string, gm *GameMessage) {
 				Clients:     gm.Clients,
 				DeadClients: gm.DeadClients,
 				CuratorID:   gm.CuratorID,
+				ButtonID:    gm.ButtonID,
 				IsWatched:   gm.IsWatched,
 				CreatedAt:   gm.CreatedAt,
 			}
@@ -176,6 +182,7 @@ func (h *Hub) sendToAllClient(gm *GameMessage) {
 			Clients:     gm.Clients,
 			DeadClients: gm.DeadClients,
 			CuratorID:   gm.CuratorID,
+			ButtonID:    gm.ButtonID,
 			IsWatched:   gm.IsWatched,
 			CreatedAt:   gm.CreatedAt,
 		}
