@@ -1,5 +1,6 @@
 var uri = "ws://" + location.host + "/monitor";
 var webSocket = null;
+var data;
 
 function init() {
     open()
@@ -21,9 +22,19 @@ function onOpen(event) {
 }
 
 function onMessage(event) {
-    var json_before = JSON.parse(event.data)
-    var json = JSON.stringify(json_before, null, "    ");
-    $("#Json pre").text(json);
+    data = JSON.parse(event.data)
+    data.clients.sort(function(a,b) {
+        if (a < b) return -1;
+        if (a > b) return 1;
+        return 0;
+    })
+    data.dead_clients.sort(function(a,b) {
+        if (a < b) return -1;
+        if (a > b) return 1;
+        return 0;
+    })
+    var disp_json = JSON.stringify(data, null, "    ");
+    $("#Json pre").text(disp_json);
 }
 
 function onError(event) {
