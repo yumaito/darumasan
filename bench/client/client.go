@@ -83,11 +83,6 @@ func (c *Client) Run(ctx context.Context) {
 			default:
 				status = c.rateSelector(c.config.Rate)
 			}
-			if c.config.Type == app.CLIENT_TYPE_CURATOR {
-				status = !status
-			} else {
-				status = true
-			}
 			m := &app.Message{
 				Status: status,
 			}
