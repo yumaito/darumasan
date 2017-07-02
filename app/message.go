@@ -14,6 +14,7 @@ type GameMessage struct {
 	Clients     []string  `json:"clients"`
 	DeadClients []string  `json:"dead_clients"`
 	CuratorID   string    `json:"curator_id"`
+	ButtonID    string    `json:"button_id"`
 	IsWatched   bool      `json:"is_watched"`
 	CreatedAt   time.Time `json:"created_at"`
 }
@@ -26,6 +27,7 @@ func (g *GameMessage) MarshalLogObject(enc zapcore.ObjectEncoder) error {
 	enc.AddArray("clients", Strings(g.Clients))
 	enc.AddArray("dead_clients", Strings(g.DeadClients))
 	enc.AddString("curator_id", g.CuratorID)
+	enc.AddString("button_id", g.ButtonID)
 	enc.AddBool("is_watched", g.IsWatched)
 	enc.AddTime("created_at", g.CreatedAt)
 
